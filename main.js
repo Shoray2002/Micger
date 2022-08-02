@@ -1,9 +1,15 @@
 import * as THREE from "three";
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/GLTFLoader.js";
+import {
+  CSS2DRenderer,
+  CSS2DObject,
+} from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/renderers/CSS2DRenderer.js";
 let renderer, scene, camera, cube, controls;
 const loader = new GLTFLoader();
 const allGroupNames = [];
+let labelRenderer;
+
 const groupMap = {
   Core_assemSTEP: {
     // red cog
@@ -52,12 +58,25 @@ function addLine(object) {
   let geometry = new THREE.BufferGeometry();
   let material = new THREE.LineBasicMaterial({ color: 0xff0000 });
   let termination = new THREE.Vector3(15, 10, 5);
-  points.push(termination);
-  points.push(object.position);
-  console.log(points);
+  let text = document.createElement("div");
+  text.textContent = "Core_assemSTEP";
+  let sphere = new THREE.SphereGeometry(0.1, 32, 32);
+  let sphereMesh = new THREE.Mesh(sphere, material);
+  sphereMesh.position.set(termination.x, termination.y, termination.z);
+  sphereMesh.layers.enableAll();
+  scene.add(sphereMesh);
+  let sphereLabel = new CSS2DObject(text);
+  sphereLabel.position.set(1, 1, 1);
+  sphereLabel.element.style.color = "whitesmoke";
+  sphereLabel.element.style.fontSize = "1.5em";
+  sphereLabel.element.style.fontFamily = "sans-serif";
+  sphereLabel.element.style.fontWeight = "bold";
+  sphereLabel.layers.set(0);
+  sphereMesh.add(sphereLabel);
+
+  points.push(termination, object.position);
   geometry.setFromPoints(points);
   let line = new THREE.Line(geometry, material);
-  console.log(line);
   scene.add(line);
 }
 
@@ -72,6 +91,12 @@ function iterateChildren(child, cb) {
 }
 
 function init() {
+  labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.style.position = "absolute";
+  labelRenderer.domElement.style.top = 0;
+  labelRenderer.domElement.style.pointerEvents = "none";
+  document.body.appendChild(labelRenderer.domElement);
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x444444);
   camera = new THREE.PerspectiveCamera(
@@ -152,5 +177,6 @@ function render() {
 function animate() {
   controls.update();
   requestAnimationFrame(animate);
+  labelRenderer.render(scene, camera);
   render();
 }
