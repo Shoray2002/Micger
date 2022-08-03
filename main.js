@@ -8,7 +8,7 @@ import {
 let renderer, scene, camera, cube, controls;
 const loader = new GLTFLoader();
 const allGroupNames = [];
-let labelRenderer;
+let labelRenderer, line;
 
 const groupMap = {
   Core_assemSTEP: {
@@ -56,7 +56,11 @@ animate();
 function addLine(object) {
   let points = [];
   let geometry = new THREE.BufferGeometry();
-  let material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+  let material = new THREE.LineDashedMaterial({
+    color: 0xff0000,
+    dashSize: 1,
+    gapSize: 0.5,
+  });
   let termination = new THREE.Vector3(15, 10, 5);
   let text = document.createElement("div");
   text.textContent = "Core_assemSTEP";
@@ -76,7 +80,8 @@ function addLine(object) {
 
   points.push(termination, object.position);
   geometry.setFromPoints(points);
-  let line = new THREE.Line(geometry, material);
+  line = new THREE.LineSegments(geometry, material);
+  line.computeLineDistances();
   scene.add(line);
 }
 
@@ -161,6 +166,18 @@ function init() {
   controls.dampingFactor = 0.25;
 
   window.addEventListener("resize", onWindowResize);
+  window.addEventListener("mousemove", onMouseMove);
+}
+function updateLine() {
+  // line.geometry.setFromPoints([
+  //   new THREE.Vector3(0, 0, 0),
+  //   new THREE.Vector3(20, 10, 5),
+  // ]);
+  line.geometry.verticesNeedUpdate = true;
+}
+
+function onMouseMove() {
+  updateLine();
 }
 
 function onWindowResize() {
