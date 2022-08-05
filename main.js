@@ -6,11 +6,21 @@ import {
   CSS2DObject,
 } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/renderers/CSS2DRenderer.js";
 import { Vector3 } from "three";
-let renderer, scene, camera, sphereMesh, controls, geometry, sphereLabel;
+let renderer,
+  scene,
+  camera,
+  sphereMesh,
+  controls,
+  geometry,
+  sphereLabel,
+  labelRenderer,
+  line,
+  raycaster;
 const loader = new GLTFLoader();
 const allGroupNames = [];
-let labelRenderer, line;
-
+const mouse = new THREE.Vector2();
+const groupObjects = []
+const groupNames = [];
 const groupMap = {
   Core_assemSTEP: {
     // red cog
@@ -93,7 +103,7 @@ function init() {
         return;
       }
       const name = child.name;
-      const groupObjects = [];
+      groupNames.push(name);
       iterateChildren(child, (c) => {
         if (c.isMesh) {
           groupObjects.push(c);
@@ -102,6 +112,7 @@ function init() {
       });
     });
     gltf.scene.scale.set(45, 45, 45);
+    console.log(groupNames);
     scene.add(gltf.scene);
   });
 
@@ -113,19 +124,16 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputEncoding = THREE.sRGBEncoding;
 
+  raycaster = new THREE.Raycaster();
+
   controls = new OrbitControls(camera, renderer.domElement);
-  // controls.addEventListener("change", render);
   controls.screenSpacePanning = true;
-  // controls.maxPolarAngle = Math.PI / 2;
-  // controls.minDistance = 50;
   controls.maxDistance = 100;
-  // controls.autoRotate = true;
-  // controls.autoRotationSpeed = 5;
   controls.enableDamping = true;
   controls.dampingFactor = 0.25;
   controls.addEventListener("change", dragChange);
   window.addEventListener("resize", onWindowResize);
-  // window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("mousemove", onMouseMove);
 }
 function dragChange() {
   sphereMesh.position.copy(camera.position);
@@ -161,17 +169,16 @@ function addLine(object) {
   sphereMesh.position.copy(camera.position);
   sphereMesh.rotation.copy(camera.rotation);
   sphereMesh.updateMatrix();
-  sphereMesh.translateZ(-20);
-  sphereMesh.translateY(3);
   sphereMesh.translateX(6);
+  sphereMesh.translateY(3);
+  sphereMesh.translateZ(-20);
   scene.add(sphereMesh);
   sphereLabel = new CSS2DObject(text);
   sphereLabel.position.set(6, 4, -20);
   sphereLabel.element.style.color = "whitesmoke";
   sphereLabel.element.style.fontSize = "1.5em";
-  sphereLabel.element.style.fontFamily = "sans-serif";
-  sphereLabel.element.style.fontWeight = "bold";
-  sphereLabel.layers.set(0);
+  sphereLabel.element.style.fontFamily = "Source Sans Pro";
+  sphereLabel.layers.set(1);
   sphereMesh.add(sphereLabel);
 
   points.push(sphereMesh.position, object.position);
@@ -195,6 +202,41 @@ function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  render();
+}
+function onMouseMove(event) {
+  event.preventDefault();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+  if (intersects.length > 0) {
+    const name = intersects[0].object.name;
+    console.log(name);
+    if (name === "closerSTEP") {
+      console.log("closerSTEP");
+    }
+    if (name === "Core_assemSTEP") {
+      console.log("Core_assemSTEP");
+    }
+    if (allGroupNames.indexOf(name) === -1) {
+      console.log("not in group");
+    }
+    const groupObjects = [];
+    iterateChildren(intersects[0].object, (c) => {
+      if (c.isMesh) {
+        groupObjects.push(c);
+        c.material = groupMap[name].color;
+      }
+    });
+    for (const c of scene.children) {
+      if (c.name === name) {
+        c.visible = true;
+      } else {
+        c.visible = false;
+      }
+    }
+  }
   render();
 }
 
