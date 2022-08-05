@@ -5,7 +5,8 @@ import {
   CSS2DRenderer,
   CSS2DObject,
 } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/renderers/CSS2DRenderer.js";
-let renderer, scene, camera, cube, controls;
+import { Vector3 } from "three";
+let renderer, scene, camera, sphereMesh, controls, geometry, sphereLabel;
 const loader = new GLTFLoader();
 const allGroupNames = [];
 let labelRenderer, line;
@@ -52,48 +53,6 @@ const groupMap = {
 };
 init();
 animate();
-
-function addLine(object) {
-  let points = [];
-  let geometry = new THREE.BufferGeometry();
-  let material = new THREE.LineDashedMaterial({
-    color: 0xff0000,
-    dashSize: 1,
-    gapSize: 0.5,
-  });
-  let termination = new THREE.Vector3(15, 10, 5);
-  let text = document.createElement("div");
-  text.textContent = "Core_assemSTEP";
-  let sphere = new THREE.SphereGeometry(0.1, 32, 32);
-  let sphereMesh = new THREE.Mesh(sphere, material);
-  sphereMesh.position.set(termination.x, termination.y, termination.z);
-  sphereMesh.layers.enableAll();
-  scene.add(sphereMesh);
-  let sphereLabel = new CSS2DObject(text);
-  sphereLabel.position.set(1, 1, 1);
-  sphereLabel.element.style.color = "whitesmoke";
-  sphereLabel.element.style.fontSize = "1.5em";
-  sphereLabel.element.style.fontFamily = "sans-serif";
-  sphereLabel.element.style.fontWeight = "bold";
-  sphereLabel.layers.set(0);
-  sphereMesh.add(sphereLabel);
-
-  points.push(termination, object.position);
-  geometry.setFromPoints(points);
-  line = new THREE.LineSegments(geometry, material);
-  line.computeLineDistances();
-  scene.add(line);
-}
-
-function iterateChildren(child, cb) {
-  if (!child.children || !child.children.length) {
-    return;
-  }
-  for (const c of child.children) {
-    cb(c);
-    iterateChildren(c, cb);
-  }
-}
 
 function init() {
   labelRenderer = new CSS2DRenderer();
@@ -164,20 +123,72 @@ function init() {
   // controls.autoRotationSpeed = 5;
   controls.enableDamping = true;
   controls.dampingFactor = 0.25;
-
+  controls.addEventListener("change", dragChange);
   window.addEventListener("resize", onWindowResize);
-  window.addEventListener("mousemove", onMouseMove);
+  // window.addEventListener("mousemove", onMouseMove);
+}
+function dragChange() {
+  sphereMesh.position.copy(camera.position);
+  sphereMesh.rotation.copy(camera.rotation);
+  sphereMesh.updateMatrix();
+  sphereMesh.translateZ(-20);
+  sphereMesh.translateY(3);
+  sphereMesh.translateX(6);
+  sphereMesh.updateMatrixWorld();
+  updateLine();
+  // console.log(groupMap)
 }
 function updateLine() {
-  // line.geometry.setFromPoints([
-  //   new THREE.Vector3(0, 0, 0),
-  //   new THREE.Vector3(20, 10, 5),
-  // ]);
+  let points = [];
+  points.push(sphereMesh.position, new Vector3(0, 0, 0));
+  geometry.setFromPoints(points);
+  line.geometry.dispose();
+  line.geometry = geometry;
+  line.computeLineDistances();
   line.geometry.verticesNeedUpdate = true;
 }
 
-function onMouseMove() {
-  updateLine();
+function addLine(object) {
+  let points = [];
+  geometry = new THREE.BufferGeometry();
+  let material = new THREE.LineBasicMaterial({
+    color: 0xff0000,
+  });
+  let text = document.createElement("div");
+  text.textContent = "Core_assemSTEP";
+  let sphere = new THREE.SphereGeometry(0.1, 32, 32);
+  sphereMesh = new THREE.Mesh(sphere, material);
+  sphereMesh.position.copy(camera.position);
+  sphereMesh.rotation.copy(camera.rotation);
+  sphereMesh.updateMatrix();
+  sphereMesh.translateZ(-20);
+  sphereMesh.translateY(3);
+  sphereMesh.translateX(6);
+  scene.add(sphereMesh);
+  sphereLabel = new CSS2DObject(text);
+  sphereLabel.position.set(6, 4, -20);
+  sphereLabel.element.style.color = "whitesmoke";
+  sphereLabel.element.style.fontSize = "1.5em";
+  sphereLabel.element.style.fontFamily = "sans-serif";
+  sphereLabel.element.style.fontWeight = "bold";
+  sphereLabel.layers.set(0);
+  sphereMesh.add(sphereLabel);
+
+  points.push(sphereMesh.position, object.position);
+  geometry.setFromPoints(points);
+  line = new THREE.LineSegments(geometry, material);
+  line.computeLineDistances();
+  scene.add(line);
+}
+
+function iterateChildren(child, cb) {
+  if (!child.children || !child.children.length) {
+    return;
+  }
+  for (const c of child.children) {
+    cb(c);
+    iterateChildren(c, cb);
+  }
 }
 
 function onWindowResize() {
